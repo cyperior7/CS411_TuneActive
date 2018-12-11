@@ -166,6 +166,36 @@ a {
     font-size: 50px;
 }
 
+.weatherSection {
+    text-align: center;
+}
+
+.weatherBtn {
+    background-color: midnightblue;
+    color: white;
+    text-decoration: none;
+    border-radius: 60px;
+    border-width: 10px;
+    border-style: solid;
+    font-size: 40px;
+    display: block;
+    margin: auto;
+    height: 175px;
+    width: 600px;
+    border-color: midnightblue;
+    text-align: center;
+}
+
+.weatherBtn:hover {
+    background-color: white;
+    color: midnightblue;
+    text-decoration: none;
+}
+
+.padI {
+    margin: 20px;
+}
+
 /*
   About Page
  */

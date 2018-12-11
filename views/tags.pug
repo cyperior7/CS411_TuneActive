@@ -28,12 +28,6 @@ block content
                 alert("Did not enter anything into field");
             } else {
                 console.log("About to search " + mysearchfield);
-                /*
-                $.post('/search', {queryVal: mysearchfield, success: function(data) {
-                    console.log(data.message);
-                    window.location.href = "/tags";
-                }});
-                */
                 $.ajax({
                     type: "POST",
                     url: "/search",

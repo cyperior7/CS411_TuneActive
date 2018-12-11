@@ -52,6 +52,9 @@ app.use('/weather', weatherRouter);
 app.use('/generate', genRouter);
 app.use('/users', usersRouter);
 
+// Cache component!
+var cache = {};
+
 app.post('/search', function(req, res, next) {
     console.log(req.body);
     var queryVal = req.body['queryVal'];
@@ -171,65 +174,61 @@ app.post('/update', function(req, res) {
 });
 
 app.post('/citySearch', function(req, res, next) {
-    console.log(req.body);
+    var cur = Date.now();
     var queryVal = req.body['queryVal'];
-    var result = [];
+    var rawQuery = queryVal.toLowerCase();
 
-    var request = require("request");
+    // check if query is already in cache and data is not stale (less than 30 minutes ago)
+    if (cache.hasOwnProperty(rawQuery) && (cur - cache[rawQuery][5] < 1800000)) {
+        console.log("Sending old data");
+        res.json({weatherResults: cache[rawQuery]});
+    } else {
+        console.log("Sending new data");
 
-    var options = { method: 'GET',
-        url: 'https://5dayweather.org/api.php',
-        qs: { city: queryVal },
-        headers:
-            { 'Postman-Token': 'a9a38b51-b625-4ffe-a2cf-1995818dc888',
-                'cache-control': 'no-cache' } ,
-        json: true
-    };
+        var result = [];
 
-    request(options, function (error, response, body) {
-        if (error) throw new Error(error);
+        var options = { method: 'GET',
+            url: 'https://5dayweather.org/api.php',
+            qs: { city: queryVal },
+            headers:
+                { 'Postman-Token': 'a9a38b51-b625-4ffe-a2cf-1995818dc888',
+                    'cache-control': 'no-cache' } ,
+            json: true
+        };
 
-        var temperature = body.data.temperature;
-        var skytext = body.data.skytext;
-        var humidity = body.data.humidity;
-        var wind = body.data.wind;
+        request(options, function (error, response, body) {
+            if (error) throw new Error(error);
 
-        if(temperature <= 30 && wind > 3) {
-            var suggestion = "Don't Run, it's too cold and windy";
-        }
-        else if(skytext.match("Rain")) { //finds all the strings that contain "rain"
-            var suggestion = "Be careful, it's raining outside";
-        }
-        else if(skytext.match("Snow")) { //finds all the strings that contain "rain"
-            var suggestion = "Be careful, it's snowing outside";
-        }
-        else if (temperature >= 90 && humidity >= 60) {
-            var suggestion = "Don't run, it's too hot and humid outside";
-        }
+            var temperature = body.data.temperature;
+            var skytext = body.data.skytext;
+            var humidity = body.data.humidity;
+            var wind = body.data.wind;
 
-        else {
-            var suggestion = "There is no time like now! Go out there and workout :)";
-        }
+            if(temperature <= '30' && wind > '3') {
+                var suggestion = "Don't run, it's too cold and windy";
+            }
+            else if(skytext.match("Rain")) { //finds all the strings that contain "rain"
+                var suggestion = "Be careful, it's raining outside";
+            }
+            else if(skytext.match("Snow")) { //finds all the strings that contain "snow"
+                var suggestion = "Be careful, it's snowing outside";
+            }
+            else if (temperature >= '90' && humidity >= '60') {
+                var suggestion = "Don't run, it's too hot and humid outside";
+            }
+            else {
+                var suggestion = "There is no time like now! Go out there and workout :)";
+            }
 
-        result.push(temperature, skytext, humidity, wind, suggestion);
-        //console.log("Result array is:", result); //result[0]returns temperature
+            result.push(temperature, skytext, humidity, wind, suggestion);
+            var cacheRes = result.slice();
+            cacheRes.push(cur);
+            cache[rawQuery] = cacheRes;
 
+            res.json({weatherResults: result});
 
-        console.log("Sending result back")
-        res.json({weatherResults: result});
-
-        //running conditions
-
-    });
-
-    // make API call and such, store result to be send back (could be array of info)
-
-    // eventually do this
-    /*
-    console.log("Sending result back");
-    res.json({ weatherResults: result });
-    */
-
+        });
+    }
 });
 
 /* GET home page. */
@@ -293,14 +292,8 @@ app.get('/callback', function (req, res) {
                 request.get(options, function (error, response, body) {
                     req.session.userId = body.id;
                     req.session.loc = body.country;
-                    console.log('session userId:' + req.session.userId);
-                    user = body.id;
                     console.log(body);
-                    console.log(body.id);
-                    console.log('RENDERING');
                     res.render('home', {username: req.session.userId, country: req.session.loc});
-                    //res.render('home', {username: user});
-                    //res.redirect('/home')
                 });
             } else {
                 res.redirect('/#' +
